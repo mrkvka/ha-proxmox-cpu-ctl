@@ -93,6 +93,14 @@ SENSORS: tuple[ProxmoxSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda d: d.get("power_w"),
     ),
+    ProxmoxSensorDescription(
+        key="cpus_online",
+        translation_key="cpus_online",
+        name="Active CPUs",
+        icon="mdi:chip",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: d.get("cpus", {}).get("online"),
+    ),
 )
 
 

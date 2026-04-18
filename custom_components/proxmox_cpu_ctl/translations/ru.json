@@ -36,18 +36,21 @@
       "cpu_frequency": {"name": "Частота CPU"},
       "cpu_max_frequency": {"name": "Макс. частота CPU"},
       "cpu_governor": {"name": "Режим CPU"},
-      "cpu_power": {"name": "Энергопотребление CPU"}
+      "cpu_power": {"name": "Энергопотребление CPU"},
+      "cpus_online": {"name": "Активные ядра"}
     },
     "select": {
       "cpu_governor": {"name": "Режим CPU"}
     },
     "number": {
-      "cpu_max_frequency": {"name": "Макс. частота CPU"}
+      "cpu_max_frequency": {"name": "Макс. частота CPU"},
+      "cpus_online": {"name": "Активные ядра"}
     },
     "button": {
       "preset_performance": {"name": "Пресет: Производительность"},
       "preset_balanced": {"name": "Пресет: Сбалансированный"},
-      "preset_powersave": {"name": "Пресет: Энергосбережение"}
+      "preset_powersave": {"name": "Пресет: Энергосбережение"},
+      "preset_ups": {"name": "Пресет: UPS (Выживание)"}
     }
   }
 }

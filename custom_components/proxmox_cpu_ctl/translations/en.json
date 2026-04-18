@@ -36,18 +36,21 @@
       "cpu_frequency": {"name": "CPU Frequency"},
       "cpu_max_frequency": {"name": "CPU Max Frequency"},
       "cpu_governor": {"name": "CPU Governor"},
-      "cpu_power": {"name": "CPU Power"}
+      "cpu_power": {"name": "CPU Power"},
+      "cpus_online": {"name": "Active CPUs"}
     },
     "select": {
       "cpu_governor": {"name": "CPU Governor"}
     },
     "number": {
-      "cpu_max_frequency": {"name": "CPU Max Frequency"}
+      "cpu_max_frequency": {"name": "CPU Max Frequency"},
+      "cpus_online": {"name": "Active CPUs"}
     },
     "button": {
       "preset_performance": {"name": "Preset Performance"},
       "preset_balanced": {"name": "Preset Balanced"},
-      "preset_powersave": {"name": "Preset Powersave"}
+      "preset_powersave": {"name": "Preset Powersave"},
+      "preset_ups": {"name": "Preset UPS (Survival)"}
     }
   }
 }

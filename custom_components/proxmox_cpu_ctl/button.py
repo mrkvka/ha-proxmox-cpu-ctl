@@ -15,6 +15,7 @@ _NAMES = {
     "performance": ("Preset Performance", "mdi:rocket-launch"),
     "balanced": ("Preset Balanced", "mdi:balance-scale"),
     "powersave": ("Preset Powersave", "mdi:leaf"),
+    "ups": ("Preset UPS (Survival)", "mdi:battery-alert"),
 }
 
 
@@ -56,6 +57,11 @@ class PresetButton(CoordinatorEntity[ProxmoxCPUCoordinator], ButtonEntity):
 
     async def async_press(self) -> None:
         cfg = PRESETS[self._preset]
+        # Core count first — scaling_max_freq applies only to online cores,
+        # so bringing cores online/offline before the freq change gives a
+        # consistent end state.
+        if "cpus" in cfg:
+            await self.coordinator.async_set_cpus(online=int(cfg["cpus"]))
         await self.coordinator.async_set_cpufreq(
             governor=cfg["governor"],
             max_freq_khz=cfg["max_freq"],

@@ -19,7 +19,10 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator: ProxmoxCPUCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([MaxFrequencyNumber(coordinator, entry)])
+    async_add_entities([
+        MaxFrequencyNumber(coordinator, entry),
+        ActiveCPUsNumber(coordinator, entry),
+    ])
 
 
 class MaxFrequencyNumber(CoordinatorEntity[ProxmoxCPUCoordinator], NumberEntity):
@@ -66,3 +69,45 @@ class MaxFrequencyNumber(CoordinatorEntity[ProxmoxCPUCoordinator], NumberEntity)
 
     async def async_set_native_value(self, value: float) -> None:
         await self.coordinator.async_set_cpufreq(max_freq_khz=int(value) * 1000)
+
+
+class ActiveCPUsNumber(CoordinatorEntity[ProxmoxCPUCoordinator], NumberEntity):
+    """Slider: number of online logical CPUs.
+
+    Offlining logical CPUs cuts power draw (each SMT thread consumes a few
+    watts even idle). CPU0 is always kept online (kernel constraint).
+    """
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "cpus_online"
+    _attr_name = "Active CPUs"
+    _attr_icon = "mdi:chip"
+    _attr_mode = NumberMode.SLIDER
+    _attr_native_step = 1
+    _attr_native_min_value = 1
+
+    def __init__(self, coordinator: ProxmoxCPUCoordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_cpus_online_number"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name=f"Proxmox CPU ({coordinator.host})",
+            manufacturer="Proxmox CPU Dashboard",
+            model="pve-cpufreq-api",
+        )
+
+    @property
+    def native_max_value(self) -> float:
+        if self.coordinator.data is None:
+            return 16.0
+        return float(self.coordinator.data.get("cpus", {}).get("total", 16))
+
+    @property
+    def native_value(self) -> float | None:
+        if self.coordinator.data is None:
+            return None
+        val = self.coordinator.data.get("cpus", {}).get("online")
+        return float(val) if val is not None else None
+
+    async def async_set_native_value(self, value: float) -> None:
+        await self.coordinator.async_set_cpus(online=int(value))

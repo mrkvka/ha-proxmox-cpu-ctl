@@ -89,3 +89,17 @@ class ProxmoxCPUCoordinator(DataUpdateCoordinator):
                 body = await resp.text()
                 raise UpdateFailed(f"POST /cpufreq failed ({resp.status}): {body}")
         await self.async_request_refresh()
+
+    async def async_set_cpus(self, online: int) -> None:
+        """Send POST /cpus — change the number of online logical CPUs."""
+        if online < 1:
+            return
+        async with self._session.post(
+            f"{self._base}/cpus",
+            data={"online": str(int(online))},
+            timeout=aiohttp.ClientTimeout(total=20),
+        ) as resp:
+            if resp.status != 200:
+                body = await resp.text()
+                raise UpdateFailed(f"POST /cpus failed ({resp.status}): {body}")
+        await self.async_request_refresh()
