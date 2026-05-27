@@ -5,18 +5,22 @@ DOMAIN = "proxmox_cpu_ctl"
 
 CONF_HOST = "host"
 CONF_PORT = "port"
+CONF_NODE = "node"
+CONF_TOKEN = "token"
+CONF_VERIFY_SSL = "verify_ssl"
 CONF_SCAN_INTERVAL = "scan_interval"
 
-DEFAULT_PORT = 8087
+DEFAULT_PORT = 8006
 DEFAULT_SCAN_INTERVAL = 15  # seconds
 
 PLATFORMS = ["sensor", "select", "number", "button"]
 
-# Preset profiles: name -> {governor, max_freq_khz, optional cpus}
-# If `cpus` is present, the preset also brings only that many cores online.
+# Preset profiles supported by proxmox-cpu-dashboard (proxmox-node-hw-api).
+# If `cpus` is present, the preset also adjusts online CPUs first.
 PRESETS = {
-    "performance": {"governor": "performance", "max_freq": 2900000, "cpus": 16},
-    "balanced": {"governor": "conservative", "max_freq": 1700000, "cpus": 16},
-    "powersave": {"governor": "powersave", "max_freq": 1400000, "cpus": 16},
-    "ups": {"governor": "powersave", "max_freq": 1400000, "cpus": 4},
+    "performance": {"profile": "performance"},
+    "balanced": {"profile": "balanced"},
+    "powersave": {"profile": "powersave"},
+    # Not a native profile; keep as a practical "survival" shortcut.
+    "ups": {"profile": "powersave", "cpus": 4},
 }

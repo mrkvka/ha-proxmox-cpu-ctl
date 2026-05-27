@@ -2,7 +2,7 @@
 
 Control Proxmox VE CPU frequency and monitor temperatures from Home Assistant.
 
-Works in tandem with [**proxmox-cpu-dashboard**](https://github.com/mrkvka/proxmox-cpu-dashboard), which installs a lightweight HTTP API on your Proxmox host.
+Works in tandem with [**proxmox-cpu-dashboard**](https://github.com/mrkvka/proxmox-cpu-dashboard) (**Proxmox Node Hardware API**), which adds `hw*` endpoints to the native Proxmox API (`:8006`).
 
 ![entities](https://via.placeholder.com/600x200?text=Proxmox+CPU+Dashboard+in+HA)
 
@@ -27,9 +27,13 @@ Under a single device "Proxmox CPU (`<host>`)":
 
 ## Prerequisites
 
-1. A Proxmox VE host with **proxmox-cpu-dashboard** installed. That project deploys `pve-cpufreq-api.service` on port 8087.
-   - Install: `git clone https://github.com/mrkvka/proxmox-cpu-dashboard && cd proxmox-cpu-dashboard && bash install.sh`
-2. Home Assistant 2024.10+ with network access to the Proxmox host.
+1. A Proxmox VE 9.x host with **proxmox-cpu-dashboard** installed (API package is enough).
+   - Install API only:
+     `git clone https://github.com/mrkvka/proxmox-cpu-dashboard && cd proxmox-cpu-dashboard && bash install-api.sh`
+2. A Proxmox API token with permissions:
+   - Read sensors/status: `Sys.Audit` on `/nodes/<node>`
+   - Change CPU settings: `Sys.Modify` on `/nodes/<node>`
+3. Home Assistant 2024.10+ with network access to the Proxmox host (`:8006`).
 
 ## Installation
 
@@ -56,7 +60,10 @@ ha core restart
 **Settings → Devices & Services → + Add Integration → Proxmox CPU Dashboard**
 
 - **Host** — IP/hostname of Proxmox (e.g. `192.168.1.200`)
-- **Port** — `8087`
+- **Port** — `8006`
+- **Node** — node name in Proxmox (usually `hostname -s`, e.g. `proxmox`)
+- **Token** — `PVEAPIToken=user@pam!tokenid=SECRET`
+- **Verify SSL** — enable only if your Proxmox HTTPS cert is trusted by Home Assistant
 - **Scan interval** — `15` seconds
 
 A device with 12 entities appears immediately.
@@ -106,8 +113,7 @@ action:
 
 - **"Cannot connect"** — verify the API is running on Proxmox:
   ```bash
-  systemctl status pve-cpufreq-api
-  curl http://<proxmox-ip>:8087/health
+  pvesh get /nodes/$(hostname -s)/hwlive
   ```
 - **Power sensor `Unavailable`** — your CPU doesn't expose RAPL counters. Normal on many AMD mobile chips.
 - **Integration doesn't appear after install** — hard-restart HA, not just reload.

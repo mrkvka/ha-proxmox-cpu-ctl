@@ -50,19 +50,13 @@ class PresetButton(CoordinatorEntity[ProxmoxCPUCoordinator], ButtonEntity):
         self._attr_unique_id = f"{entry.entry_id}_preset_{preset}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name=f"Proxmox CPU ({coordinator.host})",
+            name=f"Proxmox CPU ({coordinator.host}/{coordinator.node})",
             manufacturer="Proxmox CPU Dashboard",
-            model="pve-cpufreq-api",
+            model="proxmox-node-hw-api",
         )
 
     async def async_press(self) -> None:
         cfg = PRESETS[self._preset]
-        # Core count first — scaling_max_freq applies only to online cores,
-        # so bringing cores online/offline before the freq change gives a
-        # consistent end state.
         if "cpus" in cfg:
             await self.coordinator.async_set_cpus(online=int(cfg["cpus"]))
-        await self.coordinator.async_set_cpufreq(
-            governor=cfg["governor"],
-            max_freq_khz=cfg["max_freq"],
-        )
+        await self.coordinator.async_apply_profile(profile=cfg["profile"])

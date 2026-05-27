@@ -35,7 +35,7 @@ async def _check_host(hass: HomeAssistant, host: str, port: int) -> bool:
 class ProxmoxCPUConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle the initial setup flow (user-triggered)."""
 
-    VERSION = 1
+    VERSION = 2
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None

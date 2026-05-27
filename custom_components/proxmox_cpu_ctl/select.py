@@ -35,24 +35,55 @@ class GovernorSelect(CoordinatorEntity[ProxmoxCPUCoordinator], SelectEntity):
         self._attr_unique_id = f"{entry.entry_id}_governor_select"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name=f"Proxmox CPU ({coordinator.host})",
+            name=f"Proxmox CPU ({coordinator.host}/{coordinator.node})",
             manufacturer="Proxmox CPU Dashboard",
-            model="pve-cpufreq-api",
+            model="proxmox-node-hw-api",
         )
 
     @property
     def options(self) -> list[str]:
         if self.coordinator.data is None:
             return []
-        return self.coordinator.data.get("cpufreq", {}).get(
-            "available_governors", []
-        ) or []
+        return (
+            _first(
+                self.coordinator.data,
+                ("cpu", "cpufreq", "available_governors"),
+                ("cpufreq", "available_governors"),
+            )
+            or []
+        )
 
     @property
     def current_option(self) -> str | None:
         if self.coordinator.data is None:
             return None
-        return self.coordinator.data.get("cpufreq", {}).get("governor")
+        return _first(
+            self.coordinator.data, ("cpu", "cpufreq", "governor"), ("cpufreq", "governor")
+        )
 
     async def async_select_option(self, option: str) -> None:
         await self.coordinator.async_set_cpufreq(governor=option)
+
+
+def _get(data: dict, path: tuple) -> object | None:
+    cur: object = data
+    for key in path:
+        if cur is None:
+            return None
+        if isinstance(key, int):
+            if not isinstance(cur, list) or key >= len(cur):
+                return None
+            cur = cur[key]
+        else:
+            if not isinstance(cur, dict):
+                return None
+            cur = cur.get(key)
+    return cur
+
+
+def _first(data: dict, *paths: tuple) -> object | None:
+    for p in paths:
+        val = _get(data, p)
+        if val is not None:
+            return val
+    return None

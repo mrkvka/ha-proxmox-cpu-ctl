@@ -41,30 +41,42 @@ class MaxFrequencyNumber(CoordinatorEntity[ProxmoxCPUCoordinator], NumberEntity)
         self._attr_unique_id = f"{entry.entry_id}_max_freq_number"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name=f"Proxmox CPU ({coordinator.host})",
+            name=f"Proxmox CPU ({coordinator.host}/{coordinator.node})",
             manufacturer="Proxmox CPU Dashboard",
-            model="pve-cpufreq-api",
+            model="proxmox-node-hw-api",
         )
 
     @property
     def native_min_value(self) -> float:
         if self.coordinator.data is None:
             return 400.0
-        khz = self.coordinator.data.get("cpufreq", {}).get("hw_min_khz", 400000)
+        khz = _first(
+            self.coordinator.data,
+            ("cpu", "cpufreq", "hw_min_khz"),
+            ("cpufreq", "hw_min_khz"),
+        ) or 400000
         return round(khz / 1000)
 
     @property
     def native_max_value(self) -> float:
         if self.coordinator.data is None:
             return 5000.0
-        khz = self.coordinator.data.get("cpufreq", {}).get("hw_max_khz", 5000000)
+        khz = _first(
+            self.coordinator.data,
+            ("cpu", "cpufreq", "hw_max_khz"),
+            ("cpufreq", "hw_max_khz"),
+        ) or 5000000
         return round(khz / 1000)
 
     @property
     def native_value(self) -> float | None:
         if self.coordinator.data is None:
             return None
-        khz = self.coordinator.data.get("cpufreq", {}).get("max_khz", 0)
+        khz = _first(
+            self.coordinator.data,
+            ("cpu", "cpufreq", "max_khz"),
+            ("cpufreq", "max_khz"),
+        ) or 0
         return round(khz / 1000) if khz else None
 
     async def async_set_native_value(self, value: float) -> None:
@@ -91,23 +103,48 @@ class ActiveCPUsNumber(CoordinatorEntity[ProxmoxCPUCoordinator], NumberEntity):
         self._attr_unique_id = f"{entry.entry_id}_cpus_online_number"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name=f"Proxmox CPU ({coordinator.host})",
+            name=f"Proxmox CPU ({coordinator.host}/{coordinator.node})",
             manufacturer="Proxmox CPU Dashboard",
-            model="pve-cpufreq-api",
+            model="proxmox-node-hw-api",
         )
 
     @property
     def native_max_value(self) -> float:
         if self.coordinator.data is None:
             return 16.0
-        return float(self.coordinator.data.get("cpus", {}).get("total", 16))
+        total = _first(self.coordinator.data, ("cpu", "total_cpus"), ("cpus", "total")) or 16
+        return float(total)
 
     @property
     def native_value(self) -> float | None:
         if self.coordinator.data is None:
             return None
-        val = self.coordinator.data.get("cpus", {}).get("online")
+        val = _first(self.coordinator.data, ("cpu", "online_cpus"), ("cpus", "online"))
         return float(val) if val is not None else None
 
     async def async_set_native_value(self, value: float) -> None:
         await self.coordinator.async_set_cpus(online=int(value))
+
+
+def _get(data: dict, path: tuple) -> object | None:
+    cur: object = data
+    for key in path:
+        if cur is None:
+            return None
+        if isinstance(key, int):
+            if not isinstance(cur, list) or key >= len(cur):
+                return None
+            cur = cur[key]
+        else:
+            if not isinstance(cur, dict):
+                return None
+            cur = cur.get(key)
+    return cur
+
+
+def _first(data: dict, *paths: tuple) -> object | None:
+    for p in paths:
+        val = _get(data, p)
+        if val is not None:
+            return val
+    return None

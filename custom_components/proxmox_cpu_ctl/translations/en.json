@@ -3,16 +3,19 @@
     "step": {
       "user": {
         "title": "Proxmox CPU Dashboard",
-        "description": "Connect to the Proxmox CPU Dashboard API.",
+        "description": "Connect to the Proxmox Node Hardware API (proxmox-cpu-dashboard) via the native Proxmox API (:8006).",
         "data": {
           "host": "Proxmox host (IP or hostname)",
           "port": "API port",
+          "node": "Proxmox node name",
+          "token": "Proxmox API token (PVEAPIToken=...)",
+          "verify_ssl": "Verify SSL certificate",
           "scan_interval": "Scan interval (seconds)"
         }
       }
     },
     "error": {
-      "cannot_connect": "Cannot reach the Proxmox CPU API. Make sure pve-cpufreq-api.service is running on the target host."
+      "cannot_connect": "Cannot reach the Proxmox API or the hw endpoints. Check host/port/node, token permissions, and SSL settings."
     },
     "abort": {
       "already_configured": "This Proxmox host is already configured."

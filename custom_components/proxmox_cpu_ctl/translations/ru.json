@@ -3,16 +3,19 @@
     "step": {
       "user": {
         "title": "Proxmox CPU Dashboard",
-        "description": "Подключение к API Proxmox CPU Dashboard.",
+        "description": "Подключение к Proxmox Node Hardware API (proxmox-cpu-dashboard) через штатный Proxmox API (:8006).",
         "data": {
           "host": "Хост Proxmox (IP или имя)",
           "port": "Порт API",
+          "node": "Имя ноды Proxmox",
+          "token": "API токен Proxmox (PVEAPIToken=...)",
+          "verify_ssl": "Проверять SSL-сертификат",
           "scan_interval": "Интервал опроса (сек)"
         }
       }
     },
     "error": {
-      "cannot_connect": "Не удалось подключиться к API. Убедитесь, что pve-cpufreq-api.service запущен на Proxmox."
+      "cannot_connect": "Не удалось подключиться к Proxmox API или hw-эндпоинтам. Проверьте хост/порт/ноду, права токена и настройки SSL."
     },
     "abort": {
       "already_configured": "Этот Proxmox уже настроен."

@@ -40,7 +40,12 @@ SENSORS: tuple[ProxmoxSensorDescription, ...] = (
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda d: d.get("temps", {}).get("cpu_tctl"),
+        value_fn=lambda d: _first(
+            d,
+            ("sensors", "cpu_temp"),
+            ("sensors", "cpu_tctl"),
+            ("temps", "cpu_tctl"),  # legacy
+        ),
     ),
     ProxmoxSensorDescription(
         key="nvme_composite_temperature",
@@ -49,7 +54,11 @@ SENSORS: tuple[ProxmoxSensorDescription, ...] = (
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda d: d.get("temps", {}).get("nvme_composite"),
+        value_fn=lambda d: _first(
+            d,
+            ("sensors", "nvme", 0, "temp"),
+            ("temps", "nvme_composite"),  # legacy
+        ),
     ),
     ProxmoxSensorDescription(
         key="nvme_sensor1_temperature",
@@ -58,7 +67,11 @@ SENSORS: tuple[ProxmoxSensorDescription, ...] = (
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda d: d.get("temps", {}).get("nvme_sensor1"),
+        value_fn=lambda d: _first(
+            d,
+            ("sensors", "nvme", 1, "temp"),
+            ("temps", "nvme_sensor1"),  # legacy
+        ),
     ),
     ProxmoxSensorDescription(
         key="cpu_frequency",
@@ -67,7 +80,7 @@ SENSORS: tuple[ProxmoxSensorDescription, ...] = (
         device_class=SensorDeviceClass.FREQUENCY,
         native_unit_of_measurement=UnitOfFrequency.MEGAHERTZ,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda d: round(d.get("cpufreq", {}).get("current_khz", 0) / 1000),
+        value_fn=lambda d: _mhz(_first(d, ("cpu", "cpufreq", "current_khz"), ("cpufreq", "current_khz"))),
     ),
     ProxmoxSensorDescription(
         key="cpu_max_frequency",
@@ -76,13 +89,13 @@ SENSORS: tuple[ProxmoxSensorDescription, ...] = (
         device_class=SensorDeviceClass.FREQUENCY,
         native_unit_of_measurement=UnitOfFrequency.MEGAHERTZ,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda d: round(d.get("cpufreq", {}).get("max_khz", 0) / 1000),
+        value_fn=lambda d: _mhz(_first(d, ("cpu", "cpufreq", "max_khz"), ("cpufreq", "max_khz"))),
     ),
     ProxmoxSensorDescription(
         key="cpu_governor",
         translation_key="cpu_governor",
         name="CPU Governor",
-        value_fn=lambda d: d.get("cpufreq", {}).get("governor"),
+        value_fn=lambda d: _first(d, ("cpu", "cpufreq", "governor"), ("cpufreq", "governor")),
     ),
     ProxmoxSensorDescription(
         key="cpu_power",
@@ -91,7 +104,12 @@ SENSORS: tuple[ProxmoxSensorDescription, ...] = (
         device_class=SensorDeviceClass.POWER,
         native_unit_of_measurement=UnitOfPower.WATT,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda d: d.get("power_w"),
+        value_fn=lambda d: _first(
+            d,
+            ("power", "package_watts"),
+            ("power", "system_watts"),
+            ("power_w",),  # legacy
+        ),
     ),
     ProxmoxSensorDescription(
         key="cpus_online",
@@ -99,7 +117,7 @@ SENSORS: tuple[ProxmoxSensorDescription, ...] = (
         name="Active CPUs",
         icon="mdi:chip",
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda d: d.get("cpus", {}).get("online"),
+        value_fn=lambda d: _first(d, ("cpu", "online_cpus"), ("cpus", "online")),
     ),
 )
 
@@ -132,10 +150,10 @@ class ProxmoxCPUSensor(CoordinatorEntity[ProxmoxCPUCoordinator], SensorEntity):
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name=f"Proxmox CPU ({coordinator.host})",
+            name=f"Proxmox CPU ({coordinator.host}/{coordinator.node})",
             manufacturer="Proxmox CPU Dashboard",
-            model="pve-cpufreq-api",
-            configuration_url=f"http://{coordinator.host}:8006",
+            model="proxmox-node-hw-api",
+            configuration_url=f"https://{coordinator.host}:{coordinator.port}",
         )
 
     @property
@@ -151,3 +169,36 @@ class ProxmoxCPUSensor(CoordinatorEntity[ProxmoxCPUCoordinator], SensorEntity):
         if self.entity_description.key == "cpu_power":
             return val is not None
         return super().available
+
+
+def _get(data: dict[str, Any], path: tuple[Any, ...]) -> Any:
+    cur: Any = data
+    for key in path:
+        if cur is None:
+            return None
+        if isinstance(key, int):
+            if not isinstance(cur, list) or key >= len(cur):
+                return None
+            cur = cur[key]
+        else:
+            if not isinstance(cur, dict):
+                return None
+            cur = cur.get(key)
+    return cur
+
+
+def _first(data: dict[str, Any], *paths: tuple[Any, ...]) -> Any:
+    for p in paths:
+        val = _get(data, p)
+        if val is not None:
+            return val
+    return None
+
+
+def _mhz(khz: Any) -> Any:
+    try:
+        if khz is None:
+            return None
+        return round(float(khz) / 1000.0)
+    except (TypeError, ValueError):
+        return None
