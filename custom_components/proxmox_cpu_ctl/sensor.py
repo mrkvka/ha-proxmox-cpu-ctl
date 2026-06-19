@@ -107,8 +107,19 @@ SENSORS: tuple[ProxmoxSensorDescription, ...] = (
         value_fn=lambda d: _first(
             d,
             ("power", "package_watts"),
+            ("power_w",),  # legacy :8087 API
+        ),
+    ),
+    ProxmoxSensorDescription(
+        key="system_power",
+        translation_key="system_power",
+        name="System Power",
+        device_class=SensorDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: _first(
+            d,
             ("power", "system_watts"),
-            ("power_w",),  # legacy
         ),
     ),
     ProxmoxSensorDescription(

@@ -1,7 +1,7 @@
 {
   "domain": "proxmox_cpu_ctl",
   "name": "Proxmox CPU Dashboard",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "config_flow": true,
   "documentation": "https://github.com/mrkvka/ha-proxmox-cpu-ctl",
   "issue_tracker": "https://github.com/mrkvka/ha-proxmox-cpu-ctl/issues",
